@@ -28,6 +28,9 @@ Tile tiles[] = {
     SPAWNER(SPRITE_wall_switch_A_2,wall_switch_A_2) \
     SPAWNER(SPRITE_wall_switch_B,wall_switch_B) \
     SPAWNER(SPRITE_wall_switch_B_2,wall_switch_B_2) \
+    SPAWNER(SPRITE_skeleton,skeleton) \
+    SPAWNER(SPRITE_gate,gate) \
+    SPAWNER(SPRITE_ankh,ankh) \
 
 #define SPAWNER(sprite,name) \
     void spawn_##name(u32 x, u32 y, GameData *gd); 

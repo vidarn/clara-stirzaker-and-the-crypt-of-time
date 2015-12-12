@@ -41,6 +41,7 @@ typedef struct
 void quit_game(void);
 void draw_text(TTF_Font *font,SDL_Color font_color, const char *message,s32 x,
     s32 y, float center_x, float center_y, float scale);
+void draw_text_dialog(const char **messages, u32 num_lines, float scale);
 
 extern SDL_Renderer *renderer;
 extern TTF_Font *hud_font;

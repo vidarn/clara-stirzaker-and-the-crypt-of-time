@@ -5,6 +5,7 @@
 #include "editor.h"
 #include "menu.h"
 #include "game.h"
+#include "sprite.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -186,7 +187,50 @@ void draw_text(TTF_Font *font,SDL_Color font_color, const char *message,s32 x,
         }
         SDL_FreeSurface(surf);
 	}
+}
 
+void draw_text_dialog(const char **messages, u32 num_lines, float scale)
+{
+    float line_h = 60.f;
+    float min_w = 300.f;
+    float min_h = 150.f;
+    SDL_Texture *textures[num_lines];
+    float widths[num_lines];
+    float heights[num_lines];
+    float max_width = 0.f;
+    memset(textures,0,num_lines*sizeof(SDL_Texture*));
+    SDL_Color font_color = {62,44,33,255};
+    for(int i = 0; i < num_lines;i++){
+        SDL_Surface *surf = TTF_RenderText_Blended(menu_font, messages[i], font_color);
+        if (surf != 0){
+            textures[i] = SDL_CreateTextureFromSurface(renderer, surf);
+            if (textures[i] != 0){
+                int iw, ih;
+                SDL_QueryTexture(textures[i], NULL, NULL, &iw, &ih);
+                widths[i]  = (float)iw;
+                heights[i] = (float)ih;
+                if(widths[i] > max_width){
+                    max_width = widths[i];
+                }
+            }
+            SDL_FreeSurface(surf);
+        }
+    }
+    float border_x = max(80.f,min_w-0.5f*max_width);
+    float border_y = max(40.f,min_h-0.5f*num_lines*line_h);
+    u32 x,y;
+    screen2pixels(0.5f,0.5f,&x,&y);
+    x-=0.5f*max_width*scale+border_x*scale;
+    y-=0.5f*line_h*num_lines*scale+border_y*scale;
+    draw_dialog(x,y,max_width+2*border_x,line_h*num_lines+2*border_y,scale);
+    for(int i = 0;i<num_lines;i++){
+        if(textures[i] != 0){
+            SDL_Rect dest_rect = {x+border_x*scale,y+(i*line_h+border_y)*scale,
+                widths[i]*scale,heights[i]*scale};
+            SDL_RenderCopy(renderer,textures[i],NULL,&dest_rect);
+            SDL_DestroyTexture(textures[i]);
+        }
+    }
 }
 
 
@@ -293,7 +337,7 @@ int main(int argc, char** argv) {
         printf("Could not init font\n");
     }
     hud_font  = TTF_OpenFont("data/font.ttf", 24);
-    menu_font = TTF_OpenFont("data/font.ttf", 64);
+    menu_font = TTF_OpenFont("data/Adventure.ttf", 64);
 
     editor_state = create_editor_state(window_w,window_h);
     menu_state   = create_menu_state();

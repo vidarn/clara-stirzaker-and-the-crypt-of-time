@@ -67,8 +67,76 @@ void draw_sprite_clipped(u32 s, float x, float y, Camera camera)
     SDL_RenderCopy(renderer,sprite_texture[s],&src_rect,&dest_rect);
 }
 
+void draw_sprite_at_tile_with_alpha(u32 s, float x, float y, Camera camera,
+        float alpha)
+{
+    u8 a = alpha*255;
+    SDL_SetTextureAlphaMod(sprite_texture[s],a);
+    draw_sprite(s,x*tile_w,y*tile_h, camera);
+    SDL_SetTextureAlphaMod(sprite_texture[s],255);
+}
+
 void draw_sprite_at_tile(u32 s, float x, float y, Camera camera)
 {
     draw_sprite(s,x*tile_w,y*tile_h, camera);
+}
+
+void draw_dialog(float x, float y, float w, float h, float scale)
+{
+    float border_x = 0.1f;
+    float border_y = 0.1f;
+    float sw = sprite_size[SPRITE_dialog*2];
+    float sh = sprite_size[SPRITE_dialog*2+1];
+    float x1 = border_x*sw;
+    float y1 = border_x*sw;
+    {
+        SDL_Rect dest_rect = {x,y ,x1*scale,y1*scale};
+        SDL_Rect src_rect = {0,0,x1, y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+    {
+        SDL_Rect dest_rect = {x,y+y1*scale ,x1*scale,(h-y1)*scale};
+        SDL_Rect src_rect = {0,y1,x1, sh-2*y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+    {
+        SDL_Rect dest_rect = {x,y+(h-y1)*scale ,x1*scale,y1*scale};
+        SDL_Rect src_rect = {0,sh-y1,x1,y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+
+    {
+        SDL_Rect dest_rect = {x+(w-x1)*scale,y ,x1*scale,y1*scale};
+        SDL_Rect src_rect = {sw-x1,0,x1, y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+    {
+        SDL_Rect dest_rect = {x+(w-x1)*scale,y+y1*scale ,x1*scale,(h-2*y1)*scale+1.f};
+        SDL_Rect src_rect = {sw-x1,y1,x1, sh-2*y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+    {
+        SDL_Rect dest_rect = {x+(w-x1)*scale,y+(h-y1)*scale ,x1*scale,y1*scale};
+        SDL_Rect src_rect = {sw-x1,sh-y1,x1, y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+
+
+
+    {
+        SDL_Rect dest_rect = {x+(x1*scale),y ,(w-2*x1)*scale+1.f,y1*scale};
+        SDL_Rect src_rect = {x1,0 ,sw*(1.f-2*border_x) ,y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+    {
+        SDL_Rect dest_rect = {x+x1*scale,y+y1*scale ,(w-2*x1)*scale+1.f,(h-2*y1+1.f)*scale};
+        SDL_Rect src_rect = {x1,y1 ,sw*(1.f-2*border_x) ,sh-2*y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
+    {
+        SDL_Rect dest_rect = {x+x1*scale,y+(h-y1)*scale ,(w-2*x1)*scale+1.f,y1*scale};
+        SDL_Rect src_rect = {x1,sh-y1,sw*(1.f-2*border_x) ,y1};
+        SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
+    }
 }
 
