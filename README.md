@@ -10,6 +10,7 @@ Good luck!
 Compiles with clang or emscripten
 
 Dependencies:
-*SDL2
-*SDL2_mixer
-*SDL2_ttf
+
+* SDL2
+* SDL2_mixer
+* SDL2_ttf
