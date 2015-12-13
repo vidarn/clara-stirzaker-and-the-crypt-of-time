@@ -6,6 +6,7 @@
 #include "menu.h"
 #include "game.h"
 #include "sprite.h"
+#include "sound.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -47,7 +48,6 @@ struct Tweener
 
 void add_tweener(float *subject, float value, u32 duration, u32 type)
 {
-
     u8 found_existing = 0;
     Tweener *current = current_state->tweeners_head;
     Tweener *previous = 0;
@@ -242,6 +242,7 @@ static u32 prev_ticks[num_prev_ticks] = {};
 
 static void draw_fps()
 {
+#ifdef DEBUG
     float dt = 0.f;
     for(int i=0;i<num_prev_ticks;i++){
         dt += prev_ticks[i]/1000.f;
@@ -253,6 +254,7 @@ static void draw_fps()
     u32 x,y;
     screen2pixels(1.f,0.f,&x,&y);
     draw_text(hud_font,font_color,fps_buffer,x,y,1.f,0.f,1.f);
+#endif
 }
 
 static void main_callback(void * vdata)
@@ -283,6 +285,7 @@ static void main_callback(void * vdata)
                 }
             }break;
             case SDL_KEYDOWN: {
+#ifdef DEBUG
                 switch(event.key.keysym.sym){
                     case SDLK_F1:
                         current_state = &menu_state;
@@ -300,6 +303,7 @@ static void main_callback(void * vdata)
                         add_tweener(&tmp1,8.f,800,TWEEN_BOUNCEEASEOUT);
                         break;
                 }
+#endif
             }break;
         }
         current_state->input(current_state->data,event);
@@ -316,10 +320,8 @@ static void main_callback(void * vdata)
 }
 
 int main(int argc, char** argv) {
-    printf("tile_w: %d\n",tile_w);
-    printf("tile_h: %d\n",tile_h);
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window *window = SDL_CreateWindow("Ludum Dare 34",
+    SDL_Window *window = SDL_CreateWindow("Clara Stirzaker and the Crypt of Time",
         SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_w, window_h,
         SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if(window == 0){
@@ -332,6 +334,7 @@ int main(int argc, char** argv) {
     }
 
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+    sound_init();
 
     if(TTF_Init() != 0){
         printf("Could not init font\n");
@@ -354,6 +357,8 @@ int main(int argc, char** argv) {
         main_callback(0);
     }
 #endif
+
+    sound_quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();

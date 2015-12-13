@@ -58,6 +58,12 @@ void draw_sprite(u32 s, float x, float y, Camera camera)
     SDL_RenderCopy(renderer,sprite_texture[s],0,&dest_rect);
 }
 
+void draw_sprite_rect(u32 s, float x1, float y1, float x2, float y2)
+{
+    SDL_Rect dest_rect = {x1,y1,x2-x1,y2-y1};
+    SDL_RenderCopy(renderer,sprite_texture[s],0,&dest_rect);
+}
+
 void draw_sprite_clipped(u32 s, float x, float y, Camera camera)
 {
     SDL_Rect dest_rect = {x*camera.scale+camera.offset_x

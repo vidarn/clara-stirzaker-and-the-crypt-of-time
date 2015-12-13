@@ -31,6 +31,8 @@ Tile tiles[] = {
     SPAWNER(SPRITE_skeleton,skeleton) \
     SPAWNER(SPRITE_gate,gate) \
     SPAWNER(SPRITE_ankh,ankh) \
+    SPAWNER(SPRITE_hourglass,hourglass) \
+    SPAWNER(SPRITE_crystal,crystal) \
 
 #define SPAWNER(sprite,name) \
     void spawn_##name(u32 x, u32 y, GameData *gd); 
