@@ -5,6 +5,8 @@ Press 'j' and 'k' on the keyboard or click/touch the left or right part of the s
 
 Good luck!
 
+#[Play the game online here](http://bit.ly/crypt_of_time)
+
 ----
 
 Compiles with clang or emscripten
