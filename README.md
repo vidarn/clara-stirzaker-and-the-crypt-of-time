@@ -5,9 +5,7 @@ Press 'j' and 'k' on the keyboard or click/touch the left or right part of the s
 
 Good luck!
 
-#[Play the game online](http://bit.ly/crypt_of_time)
-
-----
+#[Play the game online](http://ludumdare.com/compo/ludum-dare-34/?action=preview&uid=126)
 
 Compiles with clang or emscripten
 
