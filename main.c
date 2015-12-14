@@ -1,6 +1,7 @@
 #include "main.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "editor.h"
 #include "menu.h"
@@ -216,8 +217,8 @@ void draw_text_dialog(const char **messages, u32 num_lines, float scale)
             SDL_FreeSurface(surf);
         }
     }
-    float border_x = max(80.f,min_w-0.5f*max_width);
-    float border_y = max(40.f,min_h-0.5f*num_lines*line_h);
+    float border_x = max_float(80.f,min_w-0.5f*max_width);
+    float border_y = max_float(40.f,min_h-0.5f*num_lines*line_h);
     u32 x,y;
     screen2pixels(0.5f,0.5f,&x,&y);
     x-=0.5f*max_width*scale+border_x*scale;
@@ -236,7 +237,7 @@ void draw_text_dialog(const char **messages, u32 num_lines, float scale)
 
 static u32 last_tick = 0;
 static float last_dt = 0;
-static const u32 num_prev_ticks = 16;
+#define num_prev_ticks 16
 static u32 current_prev_ticks = 0;
 static u32 prev_ticks[num_prev_ticks] = {};
 
