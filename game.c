@@ -13,6 +13,7 @@ typedef struct
     const char *name;
     const char **message;
     const u32 message_lines;
+    const u32 id;
 }Level;
 
 #define LEVEL_LIST \
@@ -61,9 +62,15 @@ LEVEL(current,"- Game over")\
     LEVEL_LIST
 #undef LEVEL
 
+enum{
+#define LEVEL(file,title,...) LEVEL_##file,
+    LEVEL_LIST
+#undef LEVEL
+};
+
 static const Level levels[] = {
 #define LEVEL(file,title,...) {"data/" #file ".map", title, message_##file,\
-    sizeof(message_##file)/sizeof(*message_##file)},
+    sizeof(message_##file)/sizeof(*message_##file), LEVEL_##file},
     LEVEL_LIST
 #undef LEVEL
 };
@@ -407,8 +414,8 @@ u8 collide_gate(Object *a, Object *b, GameData *gd)
 {
     GateData *d = a->data;
     if(d->open && b->type == OBJ_player){
-        if(levels[gd->current_level].message != message_level1 &&
-          levels[gd->current_level].message != message_level0){
+        if(levels[gd->current_level].id != LEVEL_level1 &&
+          levels[gd->current_level].id != LEVEL_level0){
             gd->state = STATE_LEVEL_FINISHED;
             gd->message_time = 0.f;
             add_tweener(&gd->message_time,1.f,message_time,TWEEN_ELASTICEASEOUT);
@@ -709,8 +716,8 @@ static void draw_game(GameStateData *data)
         }
     }
     static char buffer[64] = {};
-    if(levels[gd->current_level].message != message_level1 &&
-      levels[gd->current_level].message != message_level0){
+    if(levels[gd->current_level].id != LEVEL_level1 &&
+      levels[gd->current_level].id != LEVEL_level0){
         SDL_Color font_color = {0,0,0,255};
         sprintf(buffer,"Age: %d",(u32)((float)start_years
                     + (float)(end_years - start_years)*(gd->age_time/max_age)));
@@ -816,9 +823,9 @@ static void update_game(GameStateData *data,float dt)
     switch(gd->state){
     case STATE_NORMAL:
         // NOTE(Vidar): No aging at level 1
-        if(levels[gd->current_level].message != message_level1 &&
-           levels[gd->current_level].message != message_level0 &&
-           levels[gd->current_level].message != message_last){
+        if(levels[gd->current_level].id != LEVEL_level1 &&
+           levels[gd->current_level].id != LEVEL_level0 &&
+           levels[gd->current_level].id != LEVEL_last){
             gd->age_time += dt*gd->age_rate;
             gd->age_time = max(min(gd->age_time,max_age),0.f);
             for(int i =0;i<num_ages;i++){

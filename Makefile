@@ -2,8 +2,8 @@ default:run
 
 all:native web
 
-sources = main.c editor.c menu.c easing.c game.c sprite.c assets.c
-output = ld34
+sources = main.c editor.c menu.c easing.c game.c sprite.c assets.c sound.c
+output = clara_stirzaker_and_the_crypt_of_time
 
 optimization  = -O0
 #optimization  = -O1 -fsanitize=address -fno-omit-frame-pointer
@@ -23,13 +23,16 @@ web-devel:
 	-s ALLOW_MEMORY_GROWTH=1 -s ASSERTIONS=2 --preload-file data/
 
 native:
-	clang $(sources) -g $(optimization) -o $(output) -lSDL2 -lSDL2_ttf -lm
+	clang $(sources) -g -O3 -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm
+
+debug:
+	clang $(sources) -g -O0 -D DEBUG -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm
 	
 windows:
-	i686-w64-mingw32-clang $(sources) -g -O0 -o $(output).exe -lSDL2 -lSDL2_ttf -lm -Wl,-subsystem,windows
+	i686-w64-mingw32-clang $(sources) -g -O0 -o $(output).exe -lSDL2 -lSDL2_mixer -lSDL2_ttf -lm -Wl,-subsystem,windows
 	zip -r $(output).zip *.exe *.dll
 	cp $(output).zip site
 	@rclone copy site dropbox:Public/ld34
 
-run:native
+run:debug
 	optirun ./$(output);echo a
