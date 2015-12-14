@@ -5,11 +5,12 @@ Press 'j' and 'k' on the keyboard or click/touch the left or right part of the s
 
 Good luck!
 
-----
+#[Play the game online](http://ludumdare.com/compo/ludum-dare-34/?action=preview&uid=126)
 
 Compiles with clang or emscripten
 
 Dependencies:
-*SDL2
-*SDL2_mixer
-*SDL2_ttf
+
+* SDL2
+* SDL2_mixer
+* SDL2_ttf
