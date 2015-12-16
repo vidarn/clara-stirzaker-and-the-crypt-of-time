@@ -1,6 +1,6 @@
 #pragma once
 #include "main.h"
-GameState create_game_state();
+GameState create_game_state(void);
 
 typedef struct GameData GameData;
 struct GameData;

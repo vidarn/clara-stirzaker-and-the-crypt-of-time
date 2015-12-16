@@ -26,8 +26,9 @@ typedef struct Tweener Tweener;
 
 typedef struct
 {
-    u32 currentTime;
     void *data;
+    u32 currentTime;
+    u32 _pad;
 }GameStateData;
 
 typedef struct

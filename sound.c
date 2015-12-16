@@ -38,7 +38,7 @@ void play_sound(u32 sound, float volume)
 {
     assert(sound < NUM_SOUNDS);
     s32 c = Mix_PlayChannel( -1, sound_cunks[sound], 0 );
-    Mix_Volume(c,volume*128);
+    Mix_Volume(c,(u8)(volume*128));
 }
 
 void play_music()

@@ -21,25 +21,7 @@ Tile tiles[] = {
     {SPRITE_tile},
 };
 
-#define SPAWNER_LIST \
-    SPAWNER(SPRITE_hero,hero) \
-    SPAWNER(SPRITE_wall,wall) \
-    SPAWNER(SPRITE_wall_switch_A,wall_switch_A) \
-    SPAWNER(SPRITE_wall_switch_A_2,wall_switch_A_2) \
-    SPAWNER(SPRITE_wall_switch_B,wall_switch_B) \
-    SPAWNER(SPRITE_wall_switch_B_2,wall_switch_B_2) \
-    SPAWNER(SPRITE_skeleton,skeleton) \
-    SPAWNER(SPRITE_gate,gate) \
-    SPAWNER(SPRITE_ankh,ankh) \
-    SPAWNER(SPRITE_hourglass,hourglass) \
-    SPAWNER(SPRITE_crystal,crystal) \
-
-#define SPAWNER(sprite,name) \
-    void spawn_##name(u32 x, u32 y, GameData *gd); 
-SPAWNER_LIST
-#undef SPAWNER
-
-#define SPAWNER(sprite,name) {sprite, spawn_##name},
+#define SPAWNER(sprite,name) {spawn_##name, sprite},
 Spawner spawners[] = {
 SPAWNER_LIST
 };

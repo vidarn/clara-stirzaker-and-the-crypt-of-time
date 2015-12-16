@@ -43,8 +43,8 @@ void load_sprites()
                     w*4,rmask,gmask,bmask,amask);
             sprite_texture[i] = SDL_CreateTextureFromSurface(renderer,
                     sprite_surf[i]);
-            sprite_size[i*2] = w;
-            sprite_size[i*2+1] = h;
+            sprite_size[i*2] = (u32)w;
+            sprite_size[i*2+1] = (u32)h;
             fclose(f);
         }
     }
@@ -52,31 +52,35 @@ void load_sprites()
 
 void draw_sprite(u32 s, float x, float y, Camera camera)
 {
-    SDL_Rect dest_rect = {(x-sprite_center[s*2]-(sprite_size[s*2]-tile_w)*.5f)*camera.scale+camera.offset_x
-        ,(y-sprite_center[s*2+1]-sprite_size[s*2+1]+tile_h)*camera.scale+camera.offset_y
-        ,sprite_size[s*2]*camera.scale ,sprite_size[s*2+1]*camera.scale};
+    SDL_Rect dest_rect = {
+        (s32)((x-sprite_center[s*2]-(sprite_size[s*2]-tile_w)*.5f)*camera.scale
+                +camera.offset_x)
+        ,(s32)((y-sprite_center[s*2+1]-sprite_size[s*2+1]+tile_h)*camera.scale
+                +camera.offset_y)
+        ,(s32)(sprite_size[s*2]*camera.scale)
+        ,(s32)(sprite_size[s*2+1]*camera.scale)};
     SDL_RenderCopy(renderer,sprite_texture[s],0,&dest_rect);
 }
 
 void draw_sprite_rect(u32 s, float x1, float y1, float x2, float y2)
 {
-    SDL_Rect dest_rect = {x1,y1,x2-x1,y2-y1};
+    SDL_Rect dest_rect = {(s32)x1,(s32)y1,(s32)(x2-x1),(s32)(y2-y1)};
     SDL_RenderCopy(renderer,sprite_texture[s],0,&dest_rect);
 }
 
 void draw_sprite_clipped(u32 s, float x, float y, Camera camera)
 {
-    SDL_Rect dest_rect = {x*camera.scale+camera.offset_x
-        ,y*camera.scale+camera.offset_y
-        ,tile_w*camera.scale ,tile_h*camera.scale};
-    SDL_Rect src_rect = {0,0,tile_w,tile_h};
+    SDL_Rect dest_rect = {(s32)(x*camera.scale+camera.offset_x)
+        ,(s32)(y*camera.scale+camera.offset_y)
+        ,(s32)(tile_w*camera.scale) ,(s32)(tile_h*camera.scale)};
+    SDL_Rect src_rect = {0,0,(s32)tile_w,(s32)tile_h};
     SDL_RenderCopy(renderer,sprite_texture[s],&src_rect,&dest_rect);
 }
 
 void draw_sprite_at_tile_with_alpha(u32 s, float x, float y, Camera camera,
         float alpha)
 {
-    u8 a = alpha*255;
+    u8 a = (u8)(alpha*255);
     SDL_SetTextureAlphaMod(sprite_texture[s],a);
     draw_sprite(s,x*tile_w,y*tile_h, camera);
     SDL_SetTextureAlphaMod(sprite_texture[s],255);
@@ -94,7 +98,10 @@ void draw_dialog(float x, float y, float w, float h, float scale)
     float sw = sprite_size[SPRITE_dialog*2];
     float sh = sprite_size[SPRITE_dialog*2+1];
     float x1 = border_x*sw;
-    float y1 = border_x*sw;
+    float y1 = border_y*sw;
+        //TODO(Vidar): Make this prettier...
+#pragma GCC diagnostic push 
+#pragma GCC diagnostic ignored "-Wfloat-conversion"
     {
         SDL_Rect dest_rect = {x,y ,x1*scale,y1*scale};
         SDL_Rect src_rect = {0,0,x1, y1};
@@ -127,8 +134,6 @@ void draw_dialog(float x, float y, float w, float h, float scale)
         SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
     }
 
-
-
     {
         SDL_Rect dest_rect = {x+(x1*scale),y ,(w-2*x1)*scale+1.f,y1*scale};
         SDL_Rect src_rect = {x1,0 ,sw*(1.f-2*border_x) ,y1};
@@ -144,5 +149,6 @@ void draw_dialog(float x, float y, float w, float h, float scale)
         SDL_Rect src_rect = {x1,sh-y1,sw*(1.f-2*border_x) ,y1};
         SDL_RenderCopy(renderer,sprite_texture[SPRITE_dialog],&src_rect,&dest_rect);
     }
+#pragma GCC diagnostic pop
 }
 

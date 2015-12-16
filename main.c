@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "editor.h"
-#include "menu.h"
+//#include "menu.h"
 #include "game.h"
 #include "sprite.h"
 #include "sound.h"
@@ -22,9 +22,9 @@ void quit_game()
 }
 SDL_Renderer *renderer;
 
-GameState editor_state;
-GameState menu_state;
-GameState game_state;
+static GameState editor_state;
+//static GameState menu_state;
+static GameState game_state;
 
 static GameState *current_state;
 
@@ -33,25 +33,22 @@ u32 window_h = 800;
 u32 tile_w = 168;
 u32 tile_h = 118;
 
-float tmp1 = 1.0f;
-float tmp2 = 1.0f;
-
 struct Tweener
 {
+    float *subject;
+    Tweener *next;
     float  orig;
     float  value;
     u32    duration;
     u32    time;
     u32    type;
-    float *subject;
-    Tweener *next;
+    u32 _pad;
 };
 
 void add_tweener(float *subject, float value, u32 duration, u32 type)
 {
     u8 found_existing = 0;
     Tweener *current = current_state->tweeners_head;
-    Tweener *previous = 0;
     //NOTE(Vidar): replace existing tweener if it points at the same variable
     while(current != 0) {
         if(current->subject == subject){
@@ -86,7 +83,7 @@ void add_tweener(float *subject, float value, u32 duration, u32 type)
 }
 
 
-float apply_tweening(float t, u32 type){
+static double apply_tweening(float t, u32 type){
     switch(type){
         case TWEEN_LINEARINTERPOLATION: return LinearInterpolation(t);
         case TWEEN_QUADRATICEASEIN:     return QuadraticEaseIn(t);
@@ -123,7 +120,7 @@ float apply_tweening(float t, u32 type){
     }
 }
 
-void updateTweeners(u32 delta_ticks)
+static void updateTweeners(u32 delta_ticks)
 {
     Tweener *current = current_state->tweeners_head;
     Tweener *previous = 0;
@@ -143,7 +140,7 @@ void updateTweeners(u32 delta_ticks)
             free_current = 1;
         }
         float t = (float)current->time/(float)current->duration;
-        float x = apply_tweening(t,current->type);
+        float x = (float)apply_tweening(t,current->type);
         *current->subject = (1.f-x)*current->orig
             + x*(current->value);
         if(free_current){
@@ -159,8 +156,8 @@ void updateTweeners(u32 delta_ticks)
 
 void screen2pixels(float x, float y, u32 *x_out, u32 *y_out)
 {
-    *x_out = x*window_w;
-    *y_out = y*window_h;
+    *x_out = (u32)(x*window_w);
+    *y_out = (u32)(y*window_h);
 }
 
 void pixels2screen(u32 x, u32 y, float *x_out, float *y_out)
@@ -180,9 +177,9 @@ void draw_text(TTF_Font *font,SDL_Color font_color, const char *message,s32 x,
         if (texture != 0){
             int iw, ih;
             SDL_QueryTexture(texture, NULL, NULL, &iw, &ih);
-            float w = (float)iw*scale;
-            float h = (float)ih*scale;
-            SDL_Rect dest_rect = {x-center_x*w,y-center_y*h,w,h};
+            s32 w = (s32)((float)iw*scale);
+            s32 h = (s32)((float)ih*scale);
+            SDL_Rect dest_rect = {x-(s32)(center_x*w),y-(s32)(center_y*h),w,h};
             SDL_RenderCopy(renderer,texture,NULL,&dest_rect);
             SDL_DestroyTexture(texture);
         }
@@ -195,13 +192,15 @@ void draw_text_dialog(const char **messages, u32 num_lines, float scale)
     float line_h = 60.f;
     float min_w = 300.f;
     float min_h = 150.f;
-    SDL_Texture *textures[num_lines];
-    float widths[num_lines];
-    float heights[num_lines];
+    SDL_Texture **textures = malloc(sizeof(SDL_Texture*)*num_lines);
+    float *widths = malloc(sizeof(float)*num_lines);
+    float *heights = malloc(sizeof(float)*num_lines);
     float max_width = 0.f;
     memset(textures,0,num_lines*sizeof(SDL_Texture*));
+    memset(widths,  0,num_lines*sizeof(float));
+    memset(heights, 0,num_lines*sizeof(float));
     SDL_Color font_color = {62,44,33,255};
-    for(int i = 0; i < num_lines;i++){
+    for(u32 i = 0; i < num_lines;i++){
         SDL_Surface *surf = TTF_RenderText_Blended(menu_font, messages[i], font_color);
         if (surf != 0){
             textures[i] = SDL_CreateTextureFromSurface(renderer, surf);
@@ -224,14 +223,18 @@ void draw_text_dialog(const char **messages, u32 num_lines, float scale)
     x-=0.5f*max_width*scale+border_x*scale;
     y-=0.5f*line_h*num_lines*scale+border_y*scale;
     draw_dialog(x,y,max_width+2*border_x,line_h*num_lines+2*border_y,scale);
-    for(int i = 0;i<num_lines;i++){
+    for(u32 i = 0;i<num_lines;i++){
         if(textures[i] != 0){
-            SDL_Rect dest_rect = {x+border_x*scale,y+(i*line_h+border_y)*scale,
-                widths[i]*scale,heights[i]*scale};
+            SDL_Rect dest_rect = {(s32)x+(s32)(border_x*scale),
+                (s32)y+(s32)((i*line_h+border_y)*scale),
+                (s32)(widths[i]*scale),(s32)(heights[i]*scale)};
             SDL_RenderCopy(renderer,textures[i],NULL,&dest_rect);
             SDL_DestroyTexture(textures[i]);
         }
     }
+    free(textures);
+    free(widths);
+    free(heights);
 }
 
 
@@ -254,11 +257,11 @@ static void draw_fps()
     sprintf(fps_buffer,"fps: %1.2f",1.f/dt);
     u32 x,y;
     screen2pixels(1.f,0.f,&x,&y);
-    draw_text(hud_font,font_color,fps_buffer,x,y,1.f,0.f,1.f);
+    draw_text(hud_font,font_color,fps_buffer,(s32)x,(s32)y,1.f,0.f,1.f);
 #endif
 }
 
-static void main_callback(void * vdata)
+static void main_callback(UNUSED void * vdata)
 {
     u32 current_tick = SDL_GetTicks();
     u32 delta_ticks = current_tick - last_tick;
@@ -279,8 +282,8 @@ static void main_callback(void * vdata)
             case SDL_WINDOWEVENT: {
                 switch (event.window.event){
                     case SDL_WINDOWEVENT_RESIZED:
-                        window_w = event.window.data1;
-                        window_h = event.window.data2;
+                        window_w = (u32)event.window.data1;
+                        window_h = (u32)event.window.data2;
                     break;
                     default:break;
                 }
@@ -288,20 +291,14 @@ static void main_callback(void * vdata)
             case SDL_KEYDOWN: {
 #ifdef DEBUG
                 switch(event.key.keysym.sym){
-                    case SDLK_F1:
+                    /*case SDLK_F1:
                         current_state = &menu_state;
-                        break;
+                        break;*/
                     case SDLK_F2:
                         current_state = &editor_state;
                         break;
                     case SDLK_F3:
                         current_state = &game_state;
-                        break;
-                    case SDLK_a:
-                        add_tweener(&tmp1,1.f,1800,TWEEN_EXPONENTIALEASEOUT);
-                        break;
-                    case SDLK_s:
-                        add_tweener(&tmp1,8.f,800,TWEEN_BOUNCEEASEOUT);
                         break;
                 }
 #endif
@@ -320,10 +317,11 @@ static void main_callback(void * vdata)
     SDL_RenderPresent(renderer);
 }
 
-int main(int argc, char** argv) {
+int main(UNUSED int argc, UNUSED char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Window *window = SDL_CreateWindow("Clara Stirzaker and the Crypt of Time",
-        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, window_w, window_h,
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        (s32)window_w,(s32)window_h,
         SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if(window == 0){
     }
@@ -344,14 +342,11 @@ int main(int argc, char** argv) {
     menu_font = TTF_OpenFont("data/Adventure.ttf", 64);
 
 #ifdef DEBUG
-    editor_state = create_editor_state(window_w,window_h);
+    editor_state = create_editor_state();
 #endif
-    menu_state   = create_menu_state();
+    //menu_state   = create_menu_state();
     game_state   = create_game_state();
     current_state   = &game_state;
-
-    add_tweener(&tmp1,5.f,1800,TWEEN_BACKEASEOUT);
-    add_tweener(&tmp2,3.f,1600,TWEEN_CUBICEASEOUT);
 
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop_arg(main_callback, 0, 0, 1);

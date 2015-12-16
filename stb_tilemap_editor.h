@@ -1,3 +1,7 @@
+#ifdef __GNUC__
+// Avoid tons of warnings
+#pragma GCC system_header
+#endif
 // stb_tilemap_editor.h - v0.36 - Sean Barrett - http://nothings.org/stb
 // placed in the public domain - not copyrighted - first released 2014-09
 //
@@ -1165,7 +1169,9 @@ void stbte_set_property(stbte_tilemap *tm, int x, int y, int n, float val)
    tm->props[y][x][n] = val;
 }
 
+#ifdef STBTE_ALLOW_LINK
 static void stbte__set_link(stbte_tilemap *tm, int src_x, int src_y, int dest_x, int dest_y, int undo_mode);
+#endif
 
 enum
 {

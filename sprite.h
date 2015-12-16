@@ -44,7 +44,7 @@ enum
     NUM_SPRITES
 };
 
-void load_sprites();
+void load_sprites(void);
 void draw_sprite(u32 s, float x, float y, Camera camera);
 void draw_sprite_rect(u32 s, float x1, float y1, float x2, float y2);
 void draw_sprite_clipped(u32 s, float x, float y, Camera camera);

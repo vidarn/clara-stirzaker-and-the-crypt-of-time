@@ -10,6 +10,8 @@
 #define s32 int32_t
 #define s64 int32_t
 
+#define UNUSED __attribute__((unused))
+
 #define MIN_MAX(type) \
 static inline \
 type min_##type (type const x, type const y) \
@@ -22,6 +24,7 @@ MIN_MAX(int)
 MIN_MAX(unsigned)
 MIN_MAX(float)
 MIN_MAX(double)
+MIN_MAX(u8)
 
 #undef MIN_MAX
 

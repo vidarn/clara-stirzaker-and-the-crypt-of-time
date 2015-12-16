@@ -29,7 +29,7 @@ static u8 overlay_text_visible = 0;
 static u8 overlay_first_key = 0;
 static u8 overlay_action = 0;
 
-static u32 hotkeys[] = {
+static s32 hotkeys[] = {
    STBTE_act_undo,          SDLK_u,
    STBTE_tool_select,       SDLK_p,
    STBTE_tool_brush,        SDLK_d,
@@ -49,14 +49,15 @@ static u32 num_hotkeys = sizeof(hotkeys)/2/sizeof(u32);
 
 void STBTE_DRAW_RECT(s32 x0, s32 y0, s32 x1, s32 y1, u32 color)
 {
-    SDL_SetRenderDrawColor(renderer,color>>16,color>>8,color,255);
+    SDL_SetRenderDrawColor(renderer,(u8)(color>>16),(u8)(color>>8),
+            (u8)(color),255);
     SDL_Rect rect = {x0*gui_size,y0*gui_size,
         (x1-x0)*gui_size,(y1-y0)*gui_size};
     SDL_RenderFillRect(renderer,&rect);
 }
 
 void STBTE_DRAW_TILE(s32 x0, s32 y0,
-              u16 id, s32 highlight, float *data)
+              u16 id, UNUSED s32 highlight, float *data)
 {
     u32 sprite = 0;
     if(id < num_tiles){
@@ -76,12 +77,12 @@ static Map get_map(stbte_tilemap *tm)
     Map map={};
     stbte_get_dimensions(tm,&map.w,&map.h);
     map.layers = map_layers;
-    map.tiles = malloc(map.w*map.h*map.layers*sizeof(s16));
+    map.tiles = malloc((size_t)(map.w*map.h*map.layers)*sizeof(s16));
     for(int y=0;y<map.h;y++){
         for(int x=0;x<map.w;x++){
-            s16 *tiles = stbte_get_tile(tm, x, y);
+            s16 *t = stbte_get_tile(tm, x, y);
             for(int l=0;l<map.layers;l++){
-                map.tiles[x+y*map.w+l*map.w*map.h] = tiles[l];
+                map.tiles[x+y*map.w+l*map.w*map.h] = t[l];
             }
         }
     }
@@ -145,9 +146,9 @@ static void input_editor(GameStateData *data,SDL_Event event)
                         break;
                 }
             }else{
-                for(int i=0;i<num_hotkeys;i++){
+                for(u32 i=0;i<num_hotkeys;i++){
                     if(hotkeys[i*2+1] == event.key.keysym.sym){
-                        stbte_action(ed->tilemap, hotkeys[i*2]);
+                        stbte_action(ed->tilemap, (u32)hotkeys[i*2]);
                     }
                 }
                 switch(event.key.keysym.sym){
@@ -175,10 +176,10 @@ static void input_editor(GameStateData *data,SDL_Event event)
         } break;
         case SDL_WINDOWEVENT: {
             if(event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED){
-                u32 window_w = event.window.data1;
-                u32 window_h = event.window.data2;
-                stbte_set_display(0, 0, window_w/gui_size,
-                        window_h/gui_size);
+                s32 w = event.window.data1;
+                s32 h = event.window.data2;
+                stbte_set_display(0, 0, w/gui_size,
+                        h/gui_size);
             }
         }break;
     }
@@ -192,7 +193,7 @@ static void draw_editor(GameStateData *data)
         SDL_Color font_color = {0,0,0,255};
         u32 x, y;
         screen2pixels(0.5f,0.5f,&x,&y);
-        draw_text(menu_font,font_color,overlay_text,x,y,.5f,.5f,1.f);
+        draw_text(menu_font,font_color,overlay_text,(s32)x,(s32)y,.5f,.5f,1.f);
     }
 }
 
@@ -202,20 +203,21 @@ static void update_editor(GameStateData *data,float dt)
     stbte_tick(ed->tilemap, dt);
 }
 
-GameState create_editor_state(u32 window_w, u32 window_h) {
+GameState create_editor_state() {
     GameStateData *data = malloc(sizeof(GameStateData));
     memset(data,0,sizeof(GameStateData));
     EditorData *ed = malloc(sizeof(EditorData));
     memset(ed,0,sizeof(EditorData));
     stbte_tilemap *tilemap = stbte_create_map(8, 8, map_layers,
-            tile_scale*tile_w/gui_size, tile_scale*tile_h/gui_size, 64);
-    stbte_set_display(0, 0, window_w/gui_size, window_h/gui_size);
+            (s32)(tile_scale*tile_w/gui_size),
+            (s32)(tile_scale*tile_h/gui_size), 64);
+    stbte_set_display(0, 0, (s32)window_w/gui_size, (s32)window_h/gui_size);
     int a=0;
     for(u32 i=0;i<num_tiles;i++){
-        stbte_define_tile(tilemap, a++, 1, "tiles");
+        stbte_define_tile(tilemap, (u16)a++, 1, "tiles");
     }
     for(u32 i=0;i<num_spawners;i++){
-        stbte_define_tile(tilemap, a++, 2, "objects");
+        stbte_define_tile(tilemap, (u16)a++, 2, "objects");
     }
     ed->tilemap = tilemap;
     Map m = load_map("data/current.map");

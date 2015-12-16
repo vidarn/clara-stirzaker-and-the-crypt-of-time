@@ -9,8 +9,9 @@ Map load_map(const char *filename)
         fread(&map.w,sizeof(s32),1,f);
         fread(&map.h,sizeof(s32),1,f);
         fread(&map.layers,sizeof(s32),1,f);
-        map.tiles = malloc(map.w*map.h*map.layers*sizeof(s16));
-        fread(map.tiles,map.w*map.h*map.layers,sizeof(s16),f);
+        u32 num_tiles = (u32)(map.w*map.h*map.layers);
+        map.tiles = malloc(num_tiles*sizeof(s16));
+        fread(map.tiles,num_tiles,sizeof(s16),f);
         fclose(f);
     }
     return map;
@@ -23,7 +24,8 @@ void save_map(const char *filename, Map map)
         fwrite(&map.w,sizeof(s32),1,f);
         fwrite(&map.h,sizeof(s32),1,f);
         fwrite(&map.layers,sizeof(s32),1,f);
-        fwrite(map.tiles,map.w*map.h*map.layers,sizeof(s16),f);
+        u32 num_tiles = (u32)(map.w*map.h*map.layers);
+        fwrite(map.tiles,num_tiles,sizeof(s16),f);
         fclose(f);
     }
 }

@@ -19,7 +19,7 @@ enum
     NUM_SOUNDS
 };
 
-void sound_init();
-void sound_quit();
+void sound_init(void);
+void sound_quit(void);
 void play_sound(u32 sound, float volume);
-void play_music();
+void play_music(void);
