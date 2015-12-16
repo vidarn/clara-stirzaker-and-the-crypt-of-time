@@ -1,5 +1,6 @@
 #include "main.h"
 #include "game.h"
+#include "map.h"
 #include "sprite.h"
 #include "sound.h"
 #include "editor.h"

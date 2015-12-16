@@ -2,7 +2,7 @@ default:run
 
 all:native web
 
-sources = main.c editor.c menu.c easing.c game.c sprite.c assets.c sound.c
+sources = main.c menu.c map.c easing.c game.c sprite.c assets.c sound.c
 output = clara_stirzaker_and_the_crypt_of_time
 
 optimization  = -O0
@@ -26,7 +26,7 @@ native:
 	clang $(sources) -g -O3 -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm
 
 debug:
-	clang $(sources) -g -O0 -D DEBUG -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm
+	clang $(sources) editor.c -g -O0 -D DEBUG -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm
 	
 windows:
 	i686-w64-mingw32-clang $(sources) -g -O0 -o $(output).exe -lSDL2 -lSDL2_mixer -lSDL2_ttf -lm -Wl,-subsystem,windows

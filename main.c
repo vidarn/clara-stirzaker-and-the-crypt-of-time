@@ -342,7 +342,9 @@ int main(int argc, char** argv) {
     hud_font  = TTF_OpenFont("data/font.ttf", 24);
     menu_font = TTF_OpenFont("data/Adventure.ttf", 64);
 
+#ifdef DEBUG
     editor_state = create_editor_state(window_w,window_h);
+#endif
     menu_state   = create_menu_state();
     game_state   = create_game_state();
     current_state   = &game_state;

@@ -1,4 +1,5 @@
 #include "main.h"
+#include "map.h"
 #include "sprite.h"
 #include "assets.h"
 #include "editor.h"
@@ -101,42 +102,6 @@ static void set_map(Map map, stbte_tilemap *tm)
     }
 }
 
-Map load_map(const char *filename)
-{
-    //TODO(Vidar): map tile types
-    Map map = {};
-    FILE *f = fopen(filename,"rb");
-    if(f){
-        fread(&map.w,sizeof(s32),1,f);
-        fread(&map.h,sizeof(s32),1,f);
-        fread(&map.layers,sizeof(s32),1,f);
-        map.tiles = malloc(map.w*map.h*map.layers*sizeof(s16));
-        fread(map.tiles,map.w*map.h*map.layers,sizeof(s16),f);
-        fclose(f);
-    }
-    return map;
-}
-
-void delete_map(Map map)
-{
-    free(map.tiles);
-}
-
-static void save_map(const char *filename, stbte_tilemap *tm)
-{
-    Map map = get_map(tm);
-    FILE *f = fopen(filename,"wb");
-    if(f){
-        fwrite(&map.w,sizeof(s32),1,f);
-        fwrite(&map.h,sizeof(s32),1,f);
-        fwrite(&map.layers,sizeof(s32),1,f);
-        fwrite(map.tiles,map.w*map.h*map.layers,sizeof(s16),f);
-        fclose(f);
-    }
-    delete_map(map);
-}
-
-
 static void input_editor(GameStateData *data,SDL_Event event)
 {
     EditorData *ed = (EditorData*)data->data;
@@ -160,7 +125,11 @@ static void input_editor(GameStateData *data,SDL_Event event)
                         overlay_text_visible = 0;
                         switch(overlay_action){
                             case OVERLAY_SAVE:
-                                save_map(overlay_text,ed->tilemap);
+                                {
+                                    Map map = get_map(ed->tilemap);
+                                    save_map(overlay_text,map);
+                                    delete_map(map);
+                                }
                                 break;
                             case OVERLAY_LOAD:
                             {
