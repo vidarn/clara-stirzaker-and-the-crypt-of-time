@@ -7,6 +7,9 @@
 #include "assets.h"
 #include "stretchy_buffer.h"
 #include "sound.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 typedef struct
 {
@@ -539,7 +542,7 @@ static void flip_switch(u8 s, GameData *gd)
             break;
         case STATE_LEVEL_FINISHED:
             if(gd->message_time > 0.999f){
-                gd->current_level = min(num_levels-1,gd->current_level+1);
+                gd->current_level = min_int(num_levels-1,gd->current_level+1);
                 load_level(gd);
             }
             break;
@@ -576,11 +579,11 @@ static void input_game(GameStateData *data,SDL_Event event)
 #ifdef DEBUG
                         case SDLK_PLUS:
                         case SDLK_EQUALS:
-                            gd->current_level = min(num_levels-1,gd->current_level+1);
+                            gd->current_level = min_int(num_levels-1,gd->current_level+1);
                             load_level(gd);
                             break;
                         case SDLK_MINUS:
-                            gd->current_level = max(0,gd->current_level-1);
+                            gd->current_level = max_int(0,gd->current_level-1);
                             load_level(gd);
                             break;
                         case SDLK_a:
@@ -629,9 +632,9 @@ static void draw_game(GameStateData *data)
     float h = (float)(window_h-top_bar_height-bottom_bar_height);
 
     gd->camera.scale = w/(float)tile_w/(float)map_size_x;
-    gd->camera.scale = min(h/(float)tile_h/(float)(map_size_y+1),
+    gd->camera.scale = min_float(h/(float)tile_h/(float)(map_size_y+1),
             gd->camera.scale);
-    float a = max(w,h);
+    float a = max_float(w,h);
     gd->camera.offset_x = 0.5f*(w
             -gd->camera.scale*(float)tile_w*(float)map_size_x);
     gd->camera.offset_y = 0.5f*(h
@@ -669,7 +672,7 @@ static void draw_game(GameStateData *data)
                             age_fraction = (gd->age_time - age_time[gd->age])/
                                 (age_time[gd->age+1] - age_time[gd->age]);
                             float low = 0.8f;
-                            age_fraction = (max(age_fraction, low)-low)/(1.f-low);
+                            age_fraction = (max_float(age_fraction, low)-low)/(1.f-low);
                         }
                         if(gd->blink_time > 0.1f){
                             alpha = .6f + 0.3f*sin(gd->time*13.f);
@@ -828,7 +831,7 @@ static void update_game(GameStateData *data,float dt)
            levels[gd->current_level].id != LEVEL_level0 &&
            levels[gd->current_level].id != LEVEL_last){
             gd->age_time += dt*gd->age_rate;
-            gd->age_time = max(min(gd->age_time,max_age),0.f);
+            gd->age_time = max_float(min_float(gd->age_time,max_age),0.f);
             for(int i =0;i<num_ages;i++){
                 if(gd->age_time > age_time[i]){
                     gd->age = i;

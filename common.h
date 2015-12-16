@@ -12,10 +12,10 @@
 
 #define MIN_MAX(type) \
 static inline \
-type __attribute__((overloadable)) min(type const x, type const y) \
+type min_##type (type const x, type const y) \
 { return y < x ? y : x;} \
 static inline \
-type __attribute__((overloadable)) max(type const x, type const y) \
+type max_##type (type const x, type const y) \
 { return y > x ? y : x;}
 
 MIN_MAX(int)

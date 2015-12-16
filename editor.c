@@ -8,6 +8,7 @@ void STBTE_DRAW_RECT(s32 x0, s32 y0, s32 x1, s32 y1, u32 color);
 void STBTE_DRAW_TILE(s32 x0, s32 y0,
               u16 id, s32 highlight, float *data);
 #include "stb_tilemap_editor.h"
+#include <string.h>
 
 typedef struct
 {
@@ -15,7 +16,7 @@ typedef struct
 }EditorData;
 
 static const int gui_size = 2;
-static const float tile_scale = 0.5f;
+#define tile_scale 0.5f
 static const Camera camera = {tile_scale,0.f,0.f};
 static const u32 map_layers = 2;
 

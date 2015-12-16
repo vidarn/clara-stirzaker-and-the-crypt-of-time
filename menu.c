@@ -1,4 +1,7 @@
 #include "main.h"
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 typedef struct
 {
@@ -10,7 +13,7 @@ static const char *menu_entries[] = {
     "Level editor",
     "Exit",
 };
-static const int num_menu_entries = sizeof(menu_entries)/sizeof(*menu_entries);
+#define num_menu_entries sizeof(menu_entries)/sizeof(*menu_entries)
 static float menu_entry_size[num_menu_entries] = {};
 static const float unselected_size = 0.7f;
 
