@@ -4,12 +4,20 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#ifdef DEBUG
+//NOTE(Vidar): For file reloading
+#include <sys/inotify.h>
+#include <limits.h>
+#include <unistd.h>
+#include <poll.h>
+#endif
+
 extern u32 tile_w;
 extern u32 tile_h;
 
 static const char* sprite_filenames[NUM_SPRITES] = 
 {
-#define SPRITE(name,a,b) #name,
+#define SPRITE(name,a,b) #name ".png",
     SPRITE_LIST
 #undef SPRITE
 };
@@ -20,8 +28,6 @@ static const u32 sprite_center[NUM_SPRITES*2] =
 #undef SPRITE
 };
 u32 sprite_size[NUM_SPRITES*2] = {};
-static u8 *sprite_pixels[NUM_SPRITES] = {};
-static SDL_Surface *sprite_surf[NUM_SPRITES] = {};
 static SDL_Texture *sprite_texture[NUM_SPRITES] = {};
 
 static const u32 rmask = 0x000000ff;
@@ -29,26 +35,76 @@ static const u32 gmask = 0x0000ff00;
 static const u32 bmask = 0x00ff0000;
 static const u32 amask = 0xff000000;
 
+static SDL_Texture *load_texture(const char *filename, s32 *w, s32 *h){
+    FILE *f = fopen(filename,"rb");
+    if(f){
+        s32 c;
+        u8 *sprite_pixels = stbi_load_from_file(f,w,h,&c,4);
+        fclose(f);
+        SDL_Surface *sprite_surf = SDL_CreateRGBSurfaceFrom(sprite_pixels,
+                *w,*h,32, (*w)*4,rmask,gmask,bmask,amask);
+        SDL_Texture *tex= SDL_CreateTextureFromSurface(renderer,
+                sprite_surf);
+        SDL_FreeSurface(sprite_surf);
+        free(sprite_pixels);
+        return tex;
+    }
+    *w = *h = 0;
+    return 0;
+}
 
 void load_sprites()
 {
     char sprite_filename_buffer[128];
     for(int i=0;i<NUM_SPRITES;i++){
-        sprintf(sprite_filename_buffer,"data/%s.png",sprite_filenames[i]);
-        FILE *f = fopen(sprite_filename_buffer,"rb");
-        if(f){
-            s32 w,h,c;
-            sprite_pixels[i] = stbi_load_from_file(f,&w,&h,&c,4);
-            sprite_surf[i] = SDL_CreateRGBSurfaceFrom(sprite_pixels[i],w,h,32,
-                    w*4,rmask,gmask,bmask,amask);
-            sprite_texture[i] = SDL_CreateTextureFromSurface(renderer,
-                    sprite_surf[i]);
-            sprite_size[i*2] = (u32)w;
-            sprite_size[i*2+1] = (u32)h;
-            fclose(f);
+        s32 w,h;
+        sprintf(sprite_filename_buffer,"data/%s",sprite_filenames[i]);
+        sprite_texture[i] = load_texture(sprite_filename_buffer, &w, &h);
+        sprite_size[i*2] = (u32)w;
+        sprite_size[i*2+1] = (u32)h;
+    }
+}
+
+#ifdef DEBUG
+void reload_sprites()
+{
+    static s32 watch = -1;
+    static s32 data_watch = -1;
+    if(watch == -1){
+        watch = inotify_init();
+        if(watch == -1){
+            printf("Error adding inotify watch!\n");
+        }else{
+            data_watch = inotify_add_watch(watch,"data/",IN_CLOSE_WRITE);
+            if(data_watch == -1){
+                printf("Error adding inotify watch!\n");
+            }
+        }
+    }
+    struct pollfd pfd = {watch,POLLIN|POLLPRI,0};
+    if(poll(&pfd,1,0) > 0){
+        const size_t buffer_len = sizeof(struct inotify_event) + NAME_MAX + 1;
+        struct inotify_event *e = malloc(buffer_len);
+        read(watch,e,buffer_len);
+        if(e->mask == IN_CLOSE_WRITE){
+            for(u32 i=0;i<NUM_SPRITES;i++){
+                if(strcmp(sprite_filenames[i],e->name) == 0){
+                    printf("Reloading sprite %s\n", e->name);
+                    if(sprite_texture[i] != 0){
+                        SDL_DestroyTexture(sprite_texture[i]);
+                    }
+                    char sprite_filename_buffer[128];
+                    s32 w,h;
+                    sprintf(sprite_filename_buffer,"data/%s",sprite_filenames[i]);
+                    sprite_texture[i] = load_texture(sprite_filename_buffer, &w, &h);
+                    sprite_size[i*2] = (u32)w;
+                    sprite_size[i*2+1] = (u32)h;
+                }
+            }
         }
     }
 }
+#endif
 
 void draw_sprite(u32 s, float x, float y, Camera camera)
 {

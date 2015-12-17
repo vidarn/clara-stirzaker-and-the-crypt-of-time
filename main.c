@@ -4,7 +4,6 @@
 #include <string.h>
 
 #include "editor.h"
-//#include "menu.h"
 #include "game.h"
 #include "sprite.h"
 #include "sound.h"
@@ -23,7 +22,6 @@ void quit_game()
 SDL_Renderer *renderer;
 
 static GameState editor_state;
-//static GameState menu_state;
 static GameState game_state;
 
 static GameState *current_state;
@@ -291,9 +289,6 @@ static void main_callback(UNUSED void * vdata)
             case SDL_KEYDOWN: {
 #ifdef DEBUG
                 switch(event.key.keysym.sym){
-                    /*case SDLK_F1:
-                        current_state = &menu_state;
-                        break;*/
                     case SDLK_F2:
                         current_state = &editor_state;
                         break;
@@ -315,6 +310,9 @@ static void main_callback(UNUSED void * vdata)
     current_state->draw(current_state->data);
     draw_fps();
     SDL_RenderPresent(renderer);
+#ifdef DEBUG
+    reload_sprites();
+#endif
 }
 
 int main(UNUSED int argc, UNUSED char** argv) {
@@ -344,7 +342,6 @@ int main(UNUSED int argc, UNUSED char** argv) {
 #ifdef DEBUG
     editor_state = create_editor_state();
 #endif
-    //menu_state   = create_menu_state();
     game_state   = create_game_state();
     current_state   = &game_state;
 
