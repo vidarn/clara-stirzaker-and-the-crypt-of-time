@@ -7,9 +7,19 @@
 #include "game.h"
 #include "sprite.h"
 #include "sound.h"
+#include "stretchy_buffer.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
+
+#ifdef DEBUG
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include "libs/thread/thread.h"
 #endif
 
 #include "easing.h"
@@ -26,10 +36,69 @@ static GameState game_state;
 
 static GameState *current_state;
 
-u32 window_w = 1200;
-u32 window_h = 800;
+u32 window_w = 600;
+u32 window_h = 400;
 u32 tile_w = 168;
 u32 tile_h = 118;
+
+static u8 recording = 0;
+static u8 **recording_pixels = 0;
+static u32 recording_delta_ticks = 0;
+static const u32 recording_ticks_per_frame = 1000/20;
+static u32 *recording_current_frame;
+static u32 capture_index;
+#define recording_num_threads 8
+static Semaphore recording_frame_available;
+
+static unsigned long recording_save_callback(UNUSED void *param){
+    char buffer[128];
+    semaphore_wait(recording_frame_available);
+    u32 frame = __sync_fetch_and_add(recording_current_frame, 1);
+    while((s32)frame < sb_count(recording_pixels)){
+        sprintf(buffer,"/tmp/capture%d/frame%d.png",capture_index,frame);
+        stbi_write_png(buffer,(s32)window_w,(s32)window_h,4,
+                recording_pixels[frame], (s32)(4*window_w));
+        free(recording_pixels[frame]);
+        semaphore_wait(recording_frame_available);
+        frame = __sync_fetch_and_add(recording_current_frame, 1);
+    }
+    if((s32)frame == sb_count(recording_pixels)+recording_num_threads-1){
+        printf("Recorded %d frames!\nMiliseconds per frame: %d\n"
+                "Saved to /tmp/capture%d/\n", sb_count(recording_pixels),
+                recording_ticks_per_frame,capture_index);
+        sb_free(recording_pixels);
+        recording_pixels = 0;
+        *recording_current_frame = 0;
+    }
+    return 0;
+}
+
+//TODO(Vidar): Check memory usage...
+static void toggle_recording(void)
+{
+    if(recording){
+        for(u32 i=0;i<recording_num_threads;i++){
+            semaphore_post(recording_frame_available);
+        }
+        recording = 0;
+    }else if(recording_pixels == 0){
+        recording_delta_ticks = 0;
+        recording = 1;
+        char buffer[128];
+        sprintf(buffer,"/tmp/capture%d/",capture_index);
+        while(mkdir(buffer, 0777) == -1){
+            sprintf(buffer,"/tmp/capture%d/",++capture_index);
+            if(errno != EEXIST){
+                printf("Error creating folder for capture output\n");
+                break;
+            }
+        }
+        ThreadHandle handles[recording_num_threads];
+        for(u32 i=0;i<recording_num_threads;i++){
+            handles[i] = thread_start(recording_save_callback,0);
+        }
+    }
+}
 
 struct Tweener
 {
@@ -244,25 +313,38 @@ static u32 prev_ticks[num_prev_ticks] = {};
 
 static void draw_fps()
 {
-#ifdef DEBUG
     float dt = 0.f;
     for(int i=0;i<num_prev_ticks;i++){
         dt += prev_ticks[i]/1000.f;
     }
     dt *= 1.f/(float)num_prev_ticks;
-    char fps_buffer[32] = {};
+    char fps_buffer[64] = {};
     SDL_Color font_color = {0,0,0,255};
     sprintf(fps_buffer,"fps: %1.2f",1.f/dt);
     u32 x,y;
     screen2pixels(1.f,0.f,&x,&y);
     draw_text(hud_font,font_color,fps_buffer,(s32)x,(s32)y,1.f,0.f,1.f);
-#endif
+    if(recording){
+        draw_text(hud_font,font_color,"Capturing...",(s32)x,(s32)y,1.f,-1.f,1.f);
+    }else if(recording_pixels != 0){
+        float progress = min_float(1.f,(float)*recording_current_frame
+                /(float)sb_count(recording_pixels));
+        sprintf(fps_buffer,"Saving capture: %3.2f%%",progress*100.f);
+        draw_text(hud_font,font_color,fps_buffer,(s32)x,(s32)y,1.f,-1.f,1.f);
+    }
+}
+
+static void draw(void){
+    SDL_SetRenderDrawColor(renderer, 62, 44, 33, 255);
+    SDL_RenderClear(renderer);
+    current_state->draw(current_state->data);
 }
 
 static void main_callback(UNUSED void * vdata)
 {
     u32 current_tick = SDL_GetTicks();
     u32 delta_ticks = current_tick - last_tick;
+    recording_delta_ticks += delta_ticks;
     float dt = (float)delta_ticks/1000.f;
     last_tick = current_tick;
     last_dt = dt;
@@ -289,6 +371,9 @@ static void main_callback(UNUSED void * vdata)
             case SDL_KEYDOWN: {
 #ifdef DEBUG
                 switch(event.key.keysym.sym){
+                    case SDLK_F1:
+                        toggle_recording();
+                        break;
                     case SDLK_F2:
                         current_state = &editor_state;
                         break;
@@ -305,15 +390,30 @@ static void main_callback(UNUSED void * vdata)
     updateTweeners(delta_ticks);
     current_state->update(current_state->data,dt);
     // Render
-    SDL_SetRenderDrawColor(renderer, 62, 44, 33, 255);
-    SDL_RenderClear(renderer);
-    current_state->draw(current_state->data);
-    draw_fps();
+    draw();
+#ifdef DEBUG
+    if(recording && (recording_delta_ticks > recording_ticks_per_frame)){
+        recording_delta_ticks -= recording_ticks_per_frame;
+        u8 *out_pixels = malloc(4*window_w*window_h);
+        SDL_RenderReadPixels(renderer,NULL,SDL_PIXELFORMAT_ABGR8888,out_pixels,
+                (s32)(4*window_w));
+        sb_push(recording_pixels,out_pixels);
+        semaphore_post(recording_frame_available);
+    }else{
+        draw_fps();
+    }
+#endif
     SDL_RenderPresent(renderer);
 #ifdef DEBUG
     reload_sprites();
 #endif
 }
+
+#ifndef DEBUG
+#include "incbin.h"
+INCBIN(hud_font,"data/font.ttf");
+INCBIN(menu_font,"data/Adventure.ttf");
+#endif
 
 int main(UNUSED int argc, UNUSED char** argv) {
     SDL_Init(SDL_INIT_VIDEO);
@@ -323,6 +423,10 @@ int main(UNUSED int argc, UNUSED char** argv) {
         SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
     if(window == 0){
     }
+
+    recording_current_frame = malloc(sizeof(u32));
+    *recording_current_frame = 0;
+    recording_frame_available = semaphore_create(0);
     
     renderer = SDL_CreateRenderer(window, -1,
             SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -336,8 +440,17 @@ int main(UNUSED int argc, UNUSED char** argv) {
     if(TTF_Init() != 0){
         printf("Could not init font\n");
     }
-    hud_font  = TTF_OpenFont("data/font.ttf", 24);
-    menu_font = TTF_OpenFont("data/Adventure.ttf", 64);
+#ifdef DEBUG
+    SDL_RWops* rw_hud_font = SDL_RWFromFile("data/font.ttf","rb");
+    SDL_RWops* rw_menu_font = SDL_RWFromFile("data/Adventure.ttf","rb");
+    u8 free_me = 1;
+#else
+    SDL_RWops* rw_hud_font = SDL_RWFromMem((void*)ghud_fontData,ghud_fontSize);
+    SDL_RWops* rw_menu_font = SDL_RWFromMem((void*)gmenu_fontData,gmenu_fontSize);
+    u8 free_me = 0;
+#endif
+    hud_font  = TTF_OpenFontRW(rw_hud_font,free_me, 24);
+    menu_font = TTF_OpenFontRW(rw_menu_font,free_me, 64);
 
 #ifdef DEBUG
     editor_state = create_editor_state();
@@ -357,6 +470,8 @@ int main(UNUSED int argc, UNUSED char** argv) {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    free(recording_current_frame);
 
     return 0;
 }

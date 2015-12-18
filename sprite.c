@@ -10,17 +10,39 @@
 #include <limits.h>
 #include <unistd.h>
 #include <poll.h>
+#else
+#include "incbin.h"
 #endif
 
 extern u32 tile_w;
 extern u32 tile_h;
 
-static const char* sprite_filenames[NUM_SPRITES] = 
-{
-#define SPRITE(name,a,b) #name ".png",
-    SPRITE_LIST
-#undef SPRITE
-};
+#ifdef DEBUG
+    static const char* sprite_filenames[NUM_SPRITES] = 
+    {
+    #define SPRITE(name,a,b) #name ".png",
+        SPRITE_LIST
+    #undef SPRITE
+    };
+    static void init_sprite_filesizes(){}
+#else
+    #define SPRITE(name,a,b) INCBIN(name, "data/" #name ".png");
+        SPRITE_LIST
+    #undef SPRITE
+    const u8 *sprite_data[] = {
+    #define SPRITE(name,a,b) g ## name ## Data,
+        SPRITE_LIST
+    #undef SPRITE
+    };
+    u32 sprite_filesize[NUM_SPRITES];
+    static void init_sprite_filesizes(){
+        u32 i=0;
+    #define SPRITE(name,a,b) sprite_filesize[i++] =  g ## name ## Size;
+        SPRITE_LIST
+    #undef SPRITE
+    }
+#endif
+
 static const u32 sprite_center[NUM_SPRITES*2] = 
 {
 #define SPRITE(name,center_x,center_y) center_x, center_y,
@@ -35,8 +57,11 @@ static const u32 gmask = 0x0000ff00;
 static const u32 bmask = 0x00ff0000;
 static const u32 amask = 0xff000000;
 
-static SDL_Texture *load_texture(const char *filename, s32 *w, s32 *h){
-    FILE *f = fopen(filename,"rb");
+static SDL_Texture *load_texture(u32 index, s32 *w, s32 *h){
+#ifdef DEBUG
+    char sprite_filename_buffer[128];
+    sprintf(sprite_filename_buffer,"data/%s",sprite_filenames[index]);
+    FILE *f = fopen(sprite_filename_buffer,"rb");
     if(f){
         s32 c;
         u8 *sprite_pixels = stbi_load_from_file(f,w,h,&c,4);
@@ -51,15 +76,26 @@ static SDL_Texture *load_texture(const char *filename, s32 *w, s32 *h){
     }
     *w = *h = 0;
     return 0;
+#else
+    s32 c;
+    u8 *sprite_pixels = stbi_load_from_memory(sprite_data[index],
+            sprite_filesize[index],w,h,&c,4);
+    SDL_Surface *sprite_surf = SDL_CreateRGBSurfaceFrom(sprite_pixels,
+            *w,*h,32, (*w)*4,rmask,gmask,bmask,amask);
+    SDL_Texture *tex= SDL_CreateTextureFromSurface(renderer,
+            sprite_surf);
+    SDL_FreeSurface(sprite_surf);
+    free(sprite_pixels);
+    return tex;
+#endif
 }
 
 void load_sprites()
 {
-    char sprite_filename_buffer[128];
-    for(int i=0;i<NUM_SPRITES;i++){
+    init_sprite_filesizes();
+    for(u32 i=0;i<NUM_SPRITES;i++){
         s32 w,h;
-        sprintf(sprite_filename_buffer,"data/%s",sprite_filenames[i]);
-        sprite_texture[i] = load_texture(sprite_filename_buffer, &w, &h);
+        sprite_texture[i] = load_texture(i, &w, &h);
         sprite_size[i*2] = (u32)w;
         sprite_size[i*2+1] = (u32)h;
     }
@@ -93,10 +129,8 @@ void reload_sprites()
                     if(sprite_texture[i] != 0){
                         SDL_DestroyTexture(sprite_texture[i]);
                     }
-                    char sprite_filename_buffer[128];
                     s32 w,h;
-                    sprintf(sprite_filename_buffer,"data/%s",sprite_filenames[i]);
-                    sprite_texture[i] = load_texture(sprite_filename_buffer, &w, &h);
+                    sprite_texture[i] = load_texture(i, &w, &h);
                     sprite_size[i*2] = (u32)w;
                     sprite_size[i*2+1] = (u32)h;
                 }

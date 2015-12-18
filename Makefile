@@ -2,7 +2,7 @@ default:debug
 
 all:native web
 
-sources = main.c map.c easing.c game.c sprite.c assets.c sound.c
+sources = main.c map.c easing.c game.c sprite.c assets.c sound.c libs/thread/thread_pthread.c
 output = clara_stirzaker_and_the_crypt_of_time
 
 
@@ -39,11 +39,11 @@ native:
 	$(CC) $(sources) $(compiler_flags) -Os -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm
 
 mingw:
-	$(CC) $(sources) $(compiler_flags) -O3 -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm \
+	$(CC) $(sources) $(compiler_flags) -Os -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm \
 		-Wl,-subsystem,windows
 
 debug:
-	$(CC) $(sources) $(compiler_flags) $(warnings) editor.c -O0 -D DEBUG -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm
+	$(CC) $(sources) $(compiler_flags) $(warnings) editor.c -Os -D DEBUG -o $(output) -lSDL2 -lSDL2_ttf -lSDL2_mixer -lm -lpthread
 	
 windows:
 	i686-w64-mingw32-clang $(sources) -g -Os -o $(output).exe -lSDL2 -lSDL2_mixer -lSDL2_ttf -lm -Wl,-subsystem,windows
